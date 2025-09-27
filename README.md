@@ -45,27 +45,7 @@ A small Laravel 12 package that provides a web UI to:
    ];
    ```
 
-5. (Optional) Publish views:
-   ```
-   php artisan vendor:publish --provider="Nikelioum\MigrationGuru\MigrationGuruServiceProvider" --tag="migration-guru-views"
-   ```
 
-6. Visit `http://your-app.test/migration-guru`
+5. Visit `http://your-app.test/migration-guru`
 
-## Quick usage & tips
-- Use the **Create migration** form to scaffold a migration. Check the "Generate create table scaffold" and provide a table name to get a basic `id()` + `timestamps()` schema.
-- Use **Run** next to a migration to run that single file.
-- Use **Run all migrations** or **Migrate Fresh** for broader operations.
-- **Important:** If your app has no `migrations` table yet, running a single migration via the UI may fail until the migrations table exists. Use **Run all migrations** first or run `php artisan migrate` from CLI.
 
-## Security
-Protect the routes by editing `routes/web.php` in the package (or publish and edit) and adding middleware:
-```php
-Route::group(['middleware' => ['web','auth'], 'prefix' => 'migration-guru'], function () {
-    // ...
-});
-```
-
----
-
-Enjoy. If you want, I can wire this package to use your app's layout, add role-based protection, or enhance the migration editor with a code textarea.
