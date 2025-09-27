@@ -1,51 +1,56 @@
-# Migration Guru (nikelioum/migration-guru)
+# Migration Guru
 
-A small Laravel 12 package that provides a web UI to:
-- List migration files (`database/migrations`)
-- Create a new migration file (simple scaffold)
-- Run an individual migration file
-- Run all migrations
-- Run `migrate:fresh`
+A Laravel 12 package to manage migrations from a simple **web UI**.  
+It allows you to create, run, rollback, and delete migrations without touching the terminal.
 
-=== Quick notes ===
-- **This package executes migration commands programmatically**. For safety, do NOT expose the routes publicly in production. Protect with `auth` middleware or restrict by IP.
-- The package registers routes under `/migration-guru`.
+---
 
-## Install locally (recommended for testing)
+## 📦 Installation
 
-1. Extract the zip into your Laravel application's `packages/nikelioum/migration-guru` folder:
-   ```
-   mkdir -p packages/nikelioum
-   unzip /path/to/nikelioum-migration-guru.zip -d packages/nikelioum/migration-guru
-   ```
+Require the package via Composer:
 
-2. Add a `path` repository to your application's `composer.json`:
-   ```json
-   "repositories": [
-       {
-           "type": "path",
-           "url": "packages/nikelioum/migration-guru",
-           "options": { "symlink": true }
-       }
-   ]
-   ```
-
-3. Require the package:
-   ```
-   composer require nikelioum/migration-guru*
-   ```
-
-   Composer should symlink or copy the package into `vendor/nikelioum/migration-guru` based on the `path` repository settings.
-
-4. If your Laravel app does not auto-discover package providers, register the provider in `config/app.php`:
-   ```php
-   'providers' => [
-       // ...
-       Nikelioum\MigrationGuru\MigrationGuruServiceProvider::class,
-   ];
-   ```
+```bash
+composer require nikelioum/migration-guru
 
 
-5. Visit `http://your-app.test/migration-guru`
+Laravel will auto-discover the service provider.
 
+🚀 Usage
 
+Once installed, visit the following routes in your browser:
+
+Dashboard (list migrations):
+/migration-guru
+
+Create new migration:
+/migration-guru/create
+
+Run a migration:
+Trigger from the UI (button inside dashboard).
+
+Rollback / Delete:
+Trigger from the UI (buttons inside dashboard).
+
+✨ Features
+
+Web UI to manage migrations
+
+Create migration scaffolds with fields
+
+Run single or bulk migrations
+
+Rollback or delete migrations
+
+Supports auto-increment, nullable, varchar length, etc.
+
+🔖 Versioning
+
+The package follows Semantic Versioning
+.
+For example:
+
+v1.0.0 – first stable release
+
+v1.0.1 – bug fixes
+
+v1.1.0 – new features
