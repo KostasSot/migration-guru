@@ -32,7 +32,7 @@ A small Laravel 12 package that provides a web UI to:
 
 3. Require the package:
    ```
-   composer require nikelioum/migration-guru:*
+   composer require nikelioum/migration-guru*
    ```
 
    Composer should symlink or copy the package into `vendor/nikelioum/migration-guru` based on the `path` repository settings.
