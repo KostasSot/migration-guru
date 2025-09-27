@@ -5,13 +5,25 @@ It allows you to create, run, rollback, and delete migrations without touching t
 
 ---
 
+## 📸 Screenshots
+
+### Dashboard
+![Migration Guru Dashboard](docs/doc1.png)
+
+### Create Migration
+![Create Migration UI](docs/doc2.png)
+
+---
+
 ## 📦 Installation
 
 Require the package via Composer:
 
 ```bash
 composer require nikelioum/migration-guru
+```
 
+---
 
 Laravel will auto-discover the service provider.
 
