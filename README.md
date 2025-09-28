@@ -30,6 +30,13 @@ composer require nikelioum/migration-guru
 
 Laravel will auto-discover the service provider.
 
+## Publish
+Publish config and views:
+
+```bash
+php artisan vendor:publish --tag=migration-guru
+```
+
 🚀 Usage
 
 Once installed, visit the following routes in your browser:

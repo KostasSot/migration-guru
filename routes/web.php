@@ -3,9 +3,12 @@
 use Illuminate\Support\Facades\Route;
 use Nikelioum\MigrationGuru\Http\Controllers\MigrationGuruController;
 
+$prefix = config('migration-guru.route_prefix', 'migration-guru');
+$middleware = config('migration-guru.middleware', ['web']);
+
 Route::group([
-    'middleware' => ['web'],
-    'prefix' => 'migration-guru',
+    'middleware' => $middleware,
+    'prefix' => $prefix,
 ], function () {
     Route::get('/', [MigrationGuruController::class, 'index'])->name('migration-guru.index');
     Route::get('/create', [MigrationGuruController::class, 'create'])->name('migration-guru.create');
@@ -20,3 +23,4 @@ Route::group([
     Route::post('/update/{file}', [MigrationGuruController::class, 'update'])->name('migration-guru.update');
     Route::post('/lint', [MigrationGuruController::class, 'lint'])->name('migration-guru.lint');
 });
+
