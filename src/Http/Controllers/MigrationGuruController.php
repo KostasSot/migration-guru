@@ -161,57 +161,57 @@ PHP;
         }
     }
 
-   public function bulkRun(Request $request)
-{
-    $request->validate([
-        'selected' => 'required|array'
-    ]);
+    public function bulkRun(Request $request)
+    {
+        $request->validate([
+            'selected' => 'required|array'
+        ]);
 
-    $files = $request->input('selected');
+        $files = $request->input('selected');
 
-    $messages = [];
-    foreach ($files as $file) {
-        try {
-            Artisan::call('migrate', [
-                '--path' => 'database/migrations/' . $file,
-                '--force' => true,
-            ]);
-            $messages[] = "Run OK: $file";
-        } catch (\Exception $e) {
-            $messages[] = "Run failed ($file): " . $e->getMessage();
-        }
-    }
-
-    return redirect()->route('migration-guru.index')->with('status', implode("\n", $messages));
-}
-
-public function bulkDelete(Request $request)
-{
-    $request->validate(['selected' => 'required|array']);
-    $files = $request->input('selected');
-
-    $messages = [];
-    foreach ($files as $file) {
-        $migrationName = pathinfo($file, PATHINFO_FILENAME);
-        $applied = DB::table('migrations')->pluck('migration')->toArray();
-        $wasApplied = in_array($migrationName, $applied);
-
-        try {
-            if ($wasApplied) {
-                Artisan::call('migrate:rollback', [
+        $messages = [];
+        foreach ($files as $file) {
+            try {
+                Artisan::call('migrate', [
                     '--path' => 'database/migrations/' . $file,
                     '--force' => true,
                 ]);
+                $messages[] = "Run OK: $file";
+            } catch (\Exception $e) {
+                $messages[] = "Run failed ($file): " . $e->getMessage();
             }
-            File::delete(database_path('migrations/' . $file));
-            $messages[] = "Deleted: $file";
-        } catch (\Exception $e) {
-            $messages[] = "Delete failed ($file): " . $e->getMessage();
         }
+
+        return redirect()->route('migration-guru.index')->with('status', implode("\n", $messages));
     }
 
-    return redirect()->route('migration-guru.index')->with('status', implode("\n", $messages));
-}
+    public function bulkDelete(Request $request)
+    {
+        $request->validate(['selected' => 'required|array']);
+        $files = $request->input('selected');
+
+        $messages = [];
+        foreach ($files as $file) {
+            $migrationName = pathinfo($file, PATHINFO_FILENAME);
+            $applied = DB::table('migrations')->pluck('migration')->toArray();
+            $wasApplied = in_array($migrationName, $applied);
+
+            try {
+                if ($wasApplied) {
+                    Artisan::call('migrate:rollback', [
+                        '--path' => 'database/migrations/' . $file,
+                        '--force' => true,
+                    ]);
+                }
+                File::delete(database_path('migrations/' . $file));
+                $messages[] = "Deleted: $file";
+            } catch (\Exception $e) {
+                $messages[] = "Delete failed ($file): " . $e->getMessage();
+            }
+        }
+
+        return redirect()->route('migration-guru.index')->with('status', implode("\n", $messages));
+    }
 
 
     public function migrateAll(Request $request)
@@ -258,4 +258,70 @@ public function bulkDelete(Request $request)
             return redirect()->route('migration-guru.index')->with('error', 'Delete failed: ' . $e->getMessage());
         }
     }
+
+
+    public function edit($file)
+    {
+        $path = database_path('migrations/' . $file);
+
+        if (!File::exists($path)) {
+            return redirect()->route('migration-guru.index')
+                ->with('error', "Migration file not found: $file");
+        }
+
+        $content = File::get($path);
+
+        return view('migration-guru::edit', [
+            'file' => $file,
+            'content' => $content,
+        ]);
+    }
+
+    public function update(Request $request, $file)
+    {
+        $request->validate([
+            'content' => 'required|string',
+        ]);
+
+        $path = database_path('migrations/' . $file);
+
+        if (!File::exists($path)) {
+            return redirect()->route('migration-guru.index')
+                ->with('error', "Migration file not found: $file");
+        }
+
+        try {
+            File::put($path, $request->input('content'));
+            return redirect()->route('migration-guru.index')
+                ->with('status', "Migration updated: $file");
+        } catch (\Exception $e) {
+            return redirect()->route('migration-guru.index')
+                ->with('error', "Update failed ($file): " . $e->getMessage());
+        }
+    }
+
+
+    public function lint(Request $request)
+    {
+        $request->validate([
+            'code' => 'required|string',
+        ]);
+
+        $code = $request->input('code');
+
+        // Save temporarily
+        $tmpFile = tempnam(sys_get_temp_dir(), 'php');
+        file_put_contents($tmpFile, $code);
+
+        // Run PHP lint
+        $output = shell_exec("php -l " . escapeshellarg($tmpFile) . " 2>&1");
+        unlink($tmpFile);
+
+        if (strpos($output, 'No syntax errors detected') !== false) {
+            return response()->json(['valid' => true]);
+        }
+
+        return response()->json(['valid' => false, 'error' => $output]);
+    }
+
 }

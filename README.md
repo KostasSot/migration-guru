@@ -1,7 +1,7 @@
 # Migration Guru
 
 A Laravel 12 package to manage migrations from a simple **web UI**.  
-It allows you to create, run, rollback, and delete migrations without touching the terminal.
+It allows you to create,edit, run, rollback, and delete migrations without touching the terminal.
 
 ---
 
@@ -12,6 +12,9 @@ It allows you to create, run, rollback, and delete migrations without touching t
 
 ### Create Migration
 ![Create Migration UI](docs/doc2.png)
+
+### Edit Migration
+![Create Migration UI](docs/doc3.png)
 
 ---
 
@@ -36,6 +39,9 @@ Dashboard (list migrations):
 
 Create new migration:
 /migration-guru/create
+
+Edit migration:
+Click the Edit button in the dashboard to open an online IDE with syntax highlighting and live PHP validation.
 
 Run a migration:
 Trigger from the UI (button inside dashboard).
