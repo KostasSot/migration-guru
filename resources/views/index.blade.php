@@ -106,6 +106,11 @@
                                             class="px-3 py-1 bg-red-500 text-white rounded hover:bg-red-600 transition text-sm">Delete</button>
                                 </form>
                             @endif
+                            <!-- Edit button (always available) -->
+    <a href="{{ route('migration-guru.edit', $file['file']) }}"
+       class="ml-2 px-3 py-1 bg-yellow-500 text-white rounded hover:bg-yellow-600 transition text-sm">
+        Edit
+    </a>
                         </td>
                     </tr>
                 @empty
