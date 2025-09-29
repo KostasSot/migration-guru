@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Auth;
 
 class MigrationGuruController extends Controller
 {
@@ -110,7 +111,7 @@ class MigrationGuruController extends Controller
             }
 
             $up .= "            \$table->timestamps();";
-            $up = "Schema::create('$table', function (\\Illuminate\\Database\\Schema\Blueprint \$table) {\n$up\n        });";
+            $up = "Schema::create('$table', function (\\Illuminate\\Database\\Schema\\Blueprint \$table) {\n$up\n        });";
             $down = "Schema::dropIfExists('$table');";
         } else {
             $up = "// TODO: implement up()";
@@ -141,6 +142,9 @@ PHP;
         $path = database_path('migrations/' . $fileName);
         File::put($path, $content);
 
+        // LOG
+        $this->logAction('create', ['file' => $fileName], 'ok', 'Migration created');
+
         return redirect()->route('migration-guru.index')->with('status', "Migration created: $fileName");
     }
 
@@ -155,8 +159,16 @@ PHP;
                 '--force' => true,
             ]);
             $output = Artisan::output();
+
+            // LOG
+            $this->logAction('run', ['file' => $file], 'ok', trim($output));
+
             return redirect()->route('migration-guru.index')->with('status', "Run OK: " . trim($output));
         } catch (\Exception $e) {
+
+            // LOG
+            $this->logAction('run', ['file' => $file], 'error', $e->getMessage());
+
             return redirect()->route('migration-guru.index')->with('error', 'Run failed: ' . $e->getMessage());
         }
     }
@@ -177,8 +189,14 @@ PHP;
                     '--force' => true,
                 ]);
                 $messages[] = "Run OK: $file";
+
+                // LOG
+                $this->logAction('bulk_run', ['file' => $file], 'ok', 'Run OK');
             } catch (\Exception $e) {
                 $messages[] = "Run failed ($file): " . $e->getMessage();
+
+                // LOG
+                $this->logAction('bulk_run', ['file' => $file], 'error', $e->getMessage());
             }
         }
 
@@ -202,25 +220,41 @@ PHP;
                         '--path' => 'database/migrations/' . $file,
                         '--force' => true,
                     ]);
+
+                    // LOG
+                    $this->logAction('rollback', ['file' => $file], 'ok', 'Rollback before delete');
                 }
                 File::delete(database_path('migrations/' . $file));
                 $messages[] = "Deleted: $file";
+
+                // LOG
+                $this->logAction('delete', ['file' => $file], 'ok', 'File deleted');
             } catch (\Exception $e) {
                 $messages[] = "Delete failed ($file): " . $e->getMessage();
+
+                // LOG
+                $this->logAction('delete', ['file' => $file], 'error', $e->getMessage());
             }
         }
 
         return redirect()->route('migration-guru.index')->with('status', implode("\n", $messages));
     }
 
-
     public function migrateAll(Request $request)
     {
         try {
             Artisan::call('migrate', ['--force' => true]);
             $output = Artisan::output();
+
+            // LOG
+            $this->logAction('migrate_all', [], 'ok', trim($output));
+
             return redirect()->route('migration-guru.index')->with('status', "Migrate OK: " . trim($output));
         } catch (\Exception $e) {
+
+            // LOG
+            $this->logAction('migrate_all', [], 'error', $e->getMessage());
+
             return redirect()->route('migration-guru.index')->with('error', 'Migrate failed: ' . $e->getMessage());
         }
     }
@@ -230,8 +264,16 @@ PHP;
         try {
             Artisan::call('migrate:fresh', ['--force' => true]);
             $output = Artisan::output();
+
+            // LOG
+            $this->logAction('fresh', [], 'ok', trim($output));
+
             return redirect()->route('migration-guru.index')->with('status', "Fresh OK: " . trim($output));
         } catch (\Exception $e) {
+
+            // LOG
+            $this->logAction('fresh', [], 'error', $e->getMessage());
+
             return redirect()->route('migration-guru.index')->with('error', 'Fresh failed: ' . $e->getMessage());
         }
     }
@@ -251,14 +293,24 @@ PHP;
                     '--path' => 'database/migrations/' . $file,
                     '--force' => true,
                 ]);
+
+                // LOG
+                $this->logAction('rollback', ['file' => $file], 'ok', 'Rollback before delete');
             }
             File::delete(database_path('migrations/' . $file));
+
+            // LOG
+            $this->logAction('delete', ['file' => $file], 'ok', 'File deleted');
+
             return redirect()->route('migration-guru.index')->with('status', "Migration deleted: $file");
         } catch (\Exception $e) {
+
+            // LOG
+            $this->logAction('delete', ['file' => $file], 'error', $e->getMessage());
+
             return redirect()->route('migration-guru.index')->with('error', 'Delete failed: ' . $e->getMessage());
         }
     }
-
 
     public function edit($file)
     {
@@ -292,14 +344,21 @@ PHP;
 
         try {
             File::put($path, $request->input('content'));
+
+            // LOG
+            $this->logAction('update', ['file' => $file], 'ok', 'File updated');
+
             return redirect()->route('migration-guru.index')
                 ->with('status', "Migration updated: $file");
         } catch (\Exception $e) {
+
+            // LOG
+            $this->logAction('update', ['file' => $file], 'error', $e->getMessage());
+
             return redirect()->route('migration-guru.index')
                 ->with('error', "Update failed ($file): " . $e->getMessage());
         }
     }
-
 
     public function lint(Request $request)
     {
@@ -318,10 +377,49 @@ PHP;
         unlink($tmpFile);
 
         if (strpos($output, 'No syntax errors detected') !== false) {
+            // LOG
+            $this->logAction('lint', [], 'ok', 'Syntax OK');
+
             return response()->json(['valid' => true]);
         }
+
+        // LOG
+        $this->logAction('lint', [], 'error', $output);
 
         return response()->json(['valid' => false, 'error' => $output]);
     }
 
+    public function history()
+    {
+        $logs = DB::table('migration_guru_logs')
+            ->orderByDesc('executed_at')
+            ->orderByDesc('id')
+            ->simplePaginate(50);
+
+        return view('migration-guru::history', compact('logs'));
+    }
+
+    /**
+     * Minimal, model-free logger.
+     */
+    private function logAction(string $action, array $context = [], string $status = 'ok', ?string $message = null): void
+    {
+        try {
+            DB::table('migration_guru_logs')->insert([
+                'action'         => $action,
+                'file'           => $context['file'] ?? null,
+                'migration_name' => $context['migration_name']
+                    ?? (isset($context['file']) ? pathinfo($context['file'], PATHINFO_FILENAME) : null),
+                'status'         => $status,
+                'message'        => $message,
+                'user_id'        => Auth::id(),
+                'ip'             => request()->ip(),
+                'executed_at'    => now(),
+                'created_at'     => now(),
+                'updated_at'     => now(),
+            ]);
+        } catch (\Throwable $e) {
+            // never break UX because of logging
+        }
+    }
 }
