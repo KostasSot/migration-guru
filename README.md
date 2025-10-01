@@ -3,6 +3,8 @@
 A Laravel 12 package to manage migrations from a simple **web UI**.  
 It allows you to create,edit, run, rollback, and delete migrations without touching the terminal.
 
+**Also for Laravel 10 & 11
+
 ---
 
 ## 📸 Screenshots
