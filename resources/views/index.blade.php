@@ -38,10 +38,26 @@
             <button type="submit"
                     class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 transition">Migrate Fresh</button>
         </form>
+
+        <form action="{{ route('migration-guru.freshSeed') }}" method="POST" class="inline">
+            @csrf
+            <button type="submit" onclick="return confirm('Are you sure you want to drop all tables, re-migrate, AND run all seeders?')"
+                    class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition">Migrate Fresh & Seed</button>
+        </form>
+
         <button>
             <a href="{{ route('migration-guru.history') }}"
             class="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium
-            rounded text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700">View History</a>
+            rounded text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700">
+                View History
+            </a>
+        </button>
+
+        <button>
+            <a href="{{ route('migration-guru.seeders.create') }}"
+            class="bg-transparent hover:bg-blue-500 text-blue-700 font-semibold hover:text-white px-5 py-2.5 me-2 mb-2 border border-blue-500 hover:border-transparent rounded">
+                Seeders
+            </a>
         </button>
     </div>
 

@@ -22,8 +22,15 @@ Route::group([
     Route::get('/edit/{file}', [MigrationGuruController::class, 'edit'])->name('migration-guru.edit');
     Route::post('/update/{file}', [MigrationGuruController::class, 'update'])->name('migration-guru.update');
     Route::post('/lint', [MigrationGuruController::class, 'lint'])->name('migration-guru.lint');
-
-    // NEW: history page
     Route::get('/history', [MigrationGuruController::class, 'history'])->name('migration-guru.history');
+
+    //Seeder Routes
+    Route::post('/fresh-seed', [MigrationGuruController::class, 'freshSeed'])->name('migration-guru.freshSeed');
+    Route::get('/seeders/create', [MigrationGuruController::class, 'createSeeder'])->name('migration-guru.seeders.create');
+    Route::post('/seeders/create', [MigrationGuruController::class, 'storeSeeder'])->name('migration-guru.seeders.store');
+
+    //Manually seeding routes
+    Route::get('/records/create', [MigrationGuruController::class, 'createRecord'])->name('migration-guru.records.create');
+    Route::post('/records/create', [MigrationGuruController::class, 'storeRecord'])->name('migration-guru.records.store');
 });
 
