@@ -16,6 +16,9 @@ It allows you to create,edit, run, rollback, and delete migrations without touch
 ### Edit Migration
 ![Create Migration UI](docs/doc3.png)
 
+### History Migration logs
+![Create Migration UI](docs/doc4.png)
+
 ---
 
 ## 📦 Installation
