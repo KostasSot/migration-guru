@@ -22,5 +22,8 @@ Route::group([
     Route::get('/edit/{file}', [MigrationGuruController::class, 'edit'])->name('migration-guru.edit');
     Route::post('/update/{file}', [MigrationGuruController::class, 'update'])->name('migration-guru.update');
     Route::post('/lint', [MigrationGuruController::class, 'lint'])->name('migration-guru.lint');
+
+    // NEW: history page
+    Route::get('/history', [MigrationGuruController::class, 'history'])->name('migration-guru.history');
 });
 
