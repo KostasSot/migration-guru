@@ -46,6 +46,21 @@
         </form>
 
         <button>
+            <a href="{{ route('migration-guru.seeders.create') }}"
+            class="bg-transparent hover:bg-blue-500 text-blue-700 font-semibold hover:text-white px-5 py-2.5 me-2 mb-2 border border-blue-500 hover:border-transparent rounded">
+                Seeders
+            </a>
+        </button>
+
+        <button>
+            <a href="{{ route('migration-guru.resource.create') }}"
+                class="px-4 py-2 bg-green-600 text-white px-5 py-2.5 me-2 mb-2 rounded hover:bg-green-700 transition font-semibold">
+                Create Model
+            </a>
+        </button>
+
+
+        <button>
             <a href="{{ route('migration-guru.history') }}"
             class="text-white bg-gray-800 hover:bg-gray-900 focus:outline-none focus:ring-4 focus:ring-gray-300 font-medium
             rounded text-sm px-5 py-2.5 me-2 mb-2 dark:bg-gray-800 dark:hover:bg-gray-700 dark:focus:ring-gray-700 dark:border-gray-700">
@@ -54,9 +69,9 @@
         </button>
 
         <button>
-            <a href="{{ route('migration-guru.seeders.create') }}"
-            class="bg-transparent hover:bg-blue-500 text-blue-700 font-semibold hover:text-white px-5 py-2.5 me-2 mb-2 border border-blue-500 hover:border-transparent rounded">
-                Seeders
+            <a href="{{ route('migration-guru.tables.index') }}"
+                class="px-4 py-2 bg-purple-600 text-white rounded hover:bg-purple-700 transition">
+                View Database
             </a>
         </button>
     </div>
@@ -64,7 +79,7 @@
     <!-- Filters -->
     <div class="mb-4 flex flex-wrap gap-3 items-end">
         <input type="text" id="search-input" placeholder="Search migration or table..."
-               class="px-3 py-2 border rounded focus:outline-none focus:ring focus:border-blue-300">
+               class="px-3 py-2 border rounded w-1/4 focus:outline-none focus:ring focus:border-blue-300">
         <select id="status-filter" class="px-3 py-2 border rounded">
             <option value="">All Status</option>
             <option value="Applied">Applied</option>

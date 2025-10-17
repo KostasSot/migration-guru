@@ -10,8 +10,8 @@ use Illuminate\Support\Str;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Config;
+use App\Models\User;
+use App\Models\Job;
 
 class MigrationGuruController extends Controller
 {
@@ -427,27 +427,35 @@ PHP;
     }
 
     // ====================================================================================================
-    // SEEDER CREATION METHODS
+    // NEW Seeder Methods
     // ====================================================================================================
 
     /**
      * Handles the 'Migrate Fresh & Seed' button.
+     * Wipes and re-migrates the entire database, then runs all seeders.
      */
     public function freshSeed(Request $request)
     {
         try {
+            // Execute the 'migrate:fresh --seed' command
             Artisan::call('migrate:fresh', ['--seed' => true, '--force' => true]);
             $output = Artisan::output();
+
+            // Log the successful action
             $this->logAction('fresh_seed', [], 'ok', trim($output));
+
             return redirect()->route('migration-guru.index')->with('status', "Fresh & Seed OK: " . trim($output));
         } catch (\Exception $e) {
+
+            // Log the error
             $this->logAction('fresh_seed', [], 'error', $e->getMessage());
+
             return redirect()->route('migration-guru.index')->with('error', 'Fresh & Seed failed: ' . $e->getMessage());
         }
     }
 
     /**
-     * Displays the form for creating a new pre-defined seeder.
+     * Displays the form for creating a new seeder.
      */
     public function createSeeder()
     {
@@ -455,48 +463,76 @@ PHP;
     }
 
     /**
-     * Handles the generation and execution of a pre-defined seeder.
+     * Handles the submission of the 'create seeder' form.
+     * Generates the seeder and its related files (model, factory) from stubs,
+     * then immediately runs the generated seeder.
      */
     public function storeSeeder(Request $request)
     {
-        $request->validate(['seeder_type' => 'required|in:users,jobs']);
+        // Validate the incoming request
+        $request->validate([
+            'seeder_type' => 'required|in:users,jobs'
+        ]);
+
         $type = $request->input('seeder_type');
         $messages = [];
-        $seederClassName = '';
+        $seederClassName = ''; // To store the class name of the seeder we create
 
         try {
+            // === STEP 1: Generate the files ===
             if ($type === 'users') {
                 $messages = array_merge($messages, $this->generateUserSeeder());
                 $seederClassName = 'UserSeeder';
             }
+
             if ($type === 'jobs') {
                 $messages = array_merge($messages, $this->generateJobSeeder());
                 $seederClassName = 'JobSeeder';
             }
 
+            // Log the file generation part of the action
             $this->logAction('create_seeder', ['seeder_type' => $type], 'ok', implode("\n", $messages));
 
+            // === STEP 2: Run the newly created seeder ===
             try {
-                Artisan::call('db:seed', ['--class' => $seederClassName, '--force' => true]);
+                // Execute the specific seeder
+                Artisan::call('db:seed', [
+                    '--class' => $seederClassName,
+                    '--force' => true
+                ]);
+
                 $output = Artisan::output();
                 $messages[] = "\nSeeder Executed Successfully:";
                 $messages[] = trim($output);
+
+                // Log the seeder execution
                 $this->logAction('run_seeder', ['seeder_class' => $seederClassName], 'ok', trim($output));
+
             } catch (\Exception $e) {
+                // If the seeder fails, report it back to the user
                 $this->logAction('run_seeder', ['seeder_class' => $seederClassName], 'error', $e->getMessage());
                 return redirect()->back()->with('error', "Files were created, but the seeder failed to run:\n" . $e->getMessage());
             }
 
+            // If everything was successful, return with a success message
             return redirect()->route('migration-guru.index')->with('status', implode("\n", $messages));
+
         } catch (\Exception $e) {
+            // Catch errors during file generation
             $this->logAction('create_seeder', ['seeder_type' => $type], 'error', $e->getMessage());
             return redirect()->back()->with('error', 'Failed to generate seeder files: ' . $e->getMessage());
         }
     }
 
+    /**
+     * Generates the User seeder, factory, and updates DatabaseSeeder from stubs.
+     * @return array An array of status messages.
+     */
     private function generateUserSeeder(): array
     {
         $messages = [];
+
+        // 1. Create UserFactory from stub
         $factoryPath = database_path('factories/UserFactory.php');
         if (!File::exists($factoryPath)) {
             $stub = File::get(__DIR__ . '/../../stubs/user.factory.stub');
@@ -507,23 +543,33 @@ PHP;
             $messages[] = 'UserFactory.php already exists, skipping.';
         }
 
+        // 2. Create UserSeeder from stub
         $seederPath = database_path('seeders/UserSeeder.php');
         if (!File::exists($seederPath)) {
             $stub = File::get(__DIR__ . '/../../stubs/user.seeder.stub');
             File::ensureDirectoryExists(database_path('seeders'));
             File::put($seederPath, $stub);
             $messages[] = 'UserSeeder.php created.';
+
+            // 3. Update DatabaseSeeder.php to include the new seeder
             $this->updateDatabaseSeeder('UserSeeder');
             $messages[] = 'DatabaseSeeder.php updated for UserSeeder.';
         } else {
             $messages[] = 'UserSeeder.php already exists, skipping.';
         }
+
         return $messages;
     }
 
+    /**
+     * Generates the Job model, factory, seeder, and updates DatabaseSeeder from stubs.
+     * @return array An array of status messages.
+     */
     private function generateJobSeeder(): array
     {
         $messages = [];
+
+        // 1. Create Job model from stub if it doesn't exist
         $modelPath = app_path('Models/Job.php');
         if (!File::exists($modelPath)) {
             $stub = File::get(__DIR__ . '/../../stubs/job.model.stub');
@@ -534,6 +580,7 @@ PHP;
             $messages[] = 'Job model already exists, skipping.';
         }
 
+        // 2. Create JobFactory from stub
         $factoryPath = database_path('factories/JobFactory.php');
         if (!File::exists($factoryPath)) {
             $stub = File::get(__DIR__ . '/../../stubs/job.factory.stub');
@@ -544,27 +591,38 @@ PHP;
             $messages[] = 'JobFactory.php already exists, skipping.';
         }
 
+        // 3. Create JobSeeder from stub
         $seederPath = database_path('seeders/JobSeeder.php');
         if (!File::exists($seederPath)) {
             $stub = File::get(__DIR__ . '/../../stubs/job.seeder.stub');
             File::ensureDirectoryExists(database_path('seeders'));
             File::put($seederPath, $stub);
             $messages[] = 'JobSeeder.php created.';
+
+            // 4. Update DatabaseSeeder.php to include the new seeder
             $this->updateDatabaseSeeder('JobSeeder');
             $messages[] = 'DatabaseSeeder.php updated for JobSeeder.';
         } else {
             $messages[] = 'JobSeeder.php already exists, skipping.';
         }
+
         return $messages;
     }
 
+    /**
+     * Adds a seeder call to the main DatabaseSeeder.php file if it's not already there.
+     * @param string $seederClassName The class name of the seeder to add (e.g., 'UserSeeder').
+     */
     private function updateDatabaseSeeder(string $seederClassName): void
     {
         $path = database_path('seeders/DatabaseSeeder.php');
         $seederCall = '$this->call(' . $seederClassName . '::class);';
+
         if (File::exists($path)) {
             $content = File::get($path);
+            // Avoid adding the call if it already exists
             if (!Str::contains($content, $seederCall)) {
+                // Find the run() method and insert the call inside it
                 $runMethod = 'public function run()';
                 $position = strpos($content, $runMethod);
                 if ($position !== false) {
@@ -578,46 +636,130 @@ PHP;
         }
     }
 
-    // ====================================================================================================
-    // MANUAL RECORD INSERTION
-    // ====================================================================================================
+    // Manually Seeding the db
 
-    /**
-     * Shows the form to manually insert a new record.
-     */
+    //Displays the form for inserting a new record.
     public function createRecord()
     {
         return view('migration-guru::insert-record');
     }
 
-    /**
-     * Handles the form submission for inserting a new record.
-     */
+    //Handles the submission of the 'insert record' form.
     public function storeRecord(Request $request)
     {
         $request->validate([
-            'model' => 'required|in:User',
-            'name' => 'required|string|max:255',
-            'email' => 'required|email|max:255|unique:users,email',
-            'password' => 'required|string|min:8',
+            'model_type' => 'required|in:user,job_posting'
         ]);
 
-        if ($request->model === 'User') {
-            try {
-                $user = \App\Models\User::create([
-                    'name' => $request->name,
-                    'email' => $request->email,
-                    'password' => Hash::make($request->password),
+        $modelType = $request->input('model_type');
+
+        try {
+            if ($modelType === 'user') {
+                $validated = $request->validate([
+                    'fields.name' => 'required|string|max:255',
+                    'fields.email' => 'required|string|email|max:255|unique:users,email',
+                    'fields.password' => 'required|string|min:8',
+                ]);
+
+                $data = $validated['fields'];
+                User::create([
+                    'name' => $data['name'],
+                    'email' => $data['email'],
+                    'password' => Hash::make($data['password']),
+                    'email_verified_at' => now(), // Automatically verify email for convenience
                     'remember_token' => Str::random(10),
                 ]);
-                $this->logAction('insert_record', ['model' => 'User', 'id' => $user->id], 'ok', "User created with ID: {$user->id}");
-                return redirect()->route('migration-guru.index')->with('status', "Successfully created User: {$user->name} ({$user->email})");
-            } catch (\Exception $e) {
-                $this->logAction('insert_record', ['model' => 'User'], 'error', $e->getMessage());
-                return redirect()->back()->with('error', 'Failed to create user: ' . $e->getMessage())->withInput();
+
+                $message = "Successfully created User: {$data['email']}";
+                $this->logAction('insert_record', ['model' => 'User', 'identifier' => $data['email']], 'ok', $message);
+                return redirect()->route('migration-guru.index')->with('status', $message);
             }
+
+            if ($modelType === 'job_posting') {
+                // Ensure the Job model exists before trying to use it.
+                if (!class_exists(Job::class)) {
+                     return redirect()->back()->with('error', 'The Job model does not exist. Please create it first.');
+                }
+
+                $validated = $request->validate([
+                    'fields.title' => 'required|string|max:255',
+                    'fields.company' => 'required|string|max:255',
+                    'fields.description' => 'required|string',
+                ]);
+
+                $data = $validated['fields'];
+                Job::create($data);
+
+                $message = "Successfully created Job Posting: {$data['title']}";
+                $this->logAction('insert_record', ['model' => 'Job', 'identifier' => $data['title']], 'ok', $message);
+                return redirect()->route('migration-guru.index')->with('status', $message);
+            }
+
+        } catch (\Exception $e) {
+            $this->logAction('insert_record', ['model' => ucfirst($modelType)], 'error', $e->getMessage());
+            return redirect()->back()->withInput()->with('error', 'Failed to create record: ' . $e->getMessage());
         }
-        return redirect()->back()->with('error', 'Invalid model selected.')->withInput();
+
+        return redirect()->back()->with('error', 'Invalid model type selected.');
+    }
+
+    // ====================================================================================================
+    // Model Creation Methods
+    // ====================================================================================================
+
+    /**
+     * Displays the form for creating a new model.
+     */
+    public function createModel()
+    {
+        return view('migration-guru::create-model');
+    }
+
+    /**
+     * Handles the submission of the 'create model' form.
+     */
+    public function storeModel(Request $request)
+    {
+        $validated = $request->validate([
+            'model_name' => [
+                'required',
+                'string',
+                // Regex to ensure it's a valid PHP class name (starts with uppercase, etc.)
+                'regex:/^[A-Z][a-zA-Z0-9_]*$/'
+            ],
+        ], [
+            'model_name.regex' => 'The model name must be in PascalCase (e.g., MyNewModel).',
+        ]);
+
+        $modelName = $validated['model_name'];
+        $path = app_path('Models/' . $modelName . '.php');
+
+        // Check if the model file already exists to avoid overwriting.
+        if (File::exists($path)) {
+            return redirect()->back()->withInput()->with('error', "Model already exists: {$modelName}.php");
+        }
+
+        try {
+            // Read the stub file content.
+            $stub = File::get(__DIR__ . '/../../stubs/model.stub');
+
+            // Replace the placeholder with the actual model name.
+            $content = str_replace('{{ class }}', $modelName, $stub);
+
+            // Ensure the app/Models directory exists.
+            File::ensureDirectoryExists(app_path('Models'));
+
+            // Write the new file.
+            File::put($path, $content);
+
+            $message = "Successfully created model: {$modelName}.php";
+            $this->logAction('create_model', ['file' => $modelName . '.php'], 'ok', $message);
+            return redirect()->route('migration-guru.index')->with('status', $message);
+
+        } catch (\Exception $e) {
+            $this->logAction('create_model', ['file' => $modelName . '.php'], 'error', $e->getMessage());
+            return redirect()->back()->withInput()->with('error', 'Failed to create model: ' . $e->getMessage());
+        }
     }
 
     // ====================================================================================================
@@ -633,7 +775,7 @@ PHP;
     }
 
     /**
-     * Handles the generation of a model, migration, factory, and seeder from a single form.
+     * Handles the generation of a model, migration, and factory from a single form.
      */
     public function storeResource(Request $request)
     {
@@ -644,7 +786,6 @@ PHP;
             'fields.*.type' => 'required|string',
             'create_migration' => 'nullable|in:on',
             'create_factory' => 'nullable|in:on',
-            'create_seeder' => 'nullable|in:on',
         ], [
             'model_name.regex' => 'The model name must be in PascalCase (e.g., BlogPost).',
             'fields.required' => 'You must add at least one field.',
@@ -660,7 +801,7 @@ PHP;
             $modelPath = app_path('Models/' . $modelName . '.php');
             if (!File::exists($modelPath)) {
                 $stub = File::get(__DIR__ . '/../../stubs/model.stub');
-                $content = str_replace(['{{ class }}', '{{ fillable }}'], [$modelName, "\n        " . $fillable . "\n    "], $stub);
+                $content = str_replace(['{{ class }}', '{{ fillable }}'], [$modelName, "\n        ".$fillable."\n    "], $stub);
                 File::ensureDirectoryExists(app_path('Models'));
                 File::put($modelPath, $content);
                 $messages[] = "Model created: {$modelName}.php";
@@ -668,7 +809,7 @@ PHP;
                 $messages[] = "Model already exists, skipping: {$modelName}.php";
             }
 
-            // --- 2. Generate and RUN Migration (if requested) ---
+            // --- 2. Generate the Migration (if requested) ---
             if ($request->has('create_migration')) {
                 $tableName = Str::plural(Str::snake($modelName));
                 $migrationName = 'create_' . $tableName . '_table';
@@ -685,14 +826,10 @@ PHP;
                     $migrationStub = $this->getMigrationStub($tableName, $schema);
                     File::put($migrationPath, $migrationStub);
                     $messages[] = "Migration created: {$fileName}";
-
-                    // --- Immediately run the migration ---
-                    Artisan::call('migrate', ['--path' => "database/migrations/{$fileName}", '--force' => true]);
-                    $messages[] = "Migration run successfully.";
                 }
             }
 
-            // --- 3. Generate Factory (if requested) ---
+            // --- 3. Generate the Factory (if requested) ---
             if ($request->has('create_factory')) {
                 $factoryName = $modelName . 'Factory';
                 $factoryPath = database_path('factories/' . $factoryName . '.php');
@@ -705,29 +842,6 @@ PHP;
                     $messages[] = "Factory created: {$factoryName}.php";
                 } else {
                     $messages[] = "Factory already exists, skipping: {$factoryName}.php";
-                }
-
-                // --- 4. Generate and RUN Seeder (if requested AND factory was created/exists) ---
-                if ($request->has('create_seeder')) {
-                    $seederName = "{$modelName}Seeder";
-                    $seederPath = database_path('seeders/' . $seederName . '.php');
-                    if (!File::exists($seederPath)) {
-                        $stub = File::get(__DIR__ . '/../../stubs/seeder.stub');
-                        $content = str_replace('{{ class }}', $modelName, $stub);
-                        File::ensureDirectoryExists(database_path('seeders'));
-                        File::put($seederPath, $content);
-                        $messages[] = "Seeder created: {$seederName}.php";
-
-                        // Update DatabaseSeeder.php
-                        $this->updateDatabaseSeeder($seederName);
-                        $messages[] = "DatabaseSeeder.php updated.";
-                    } else {
-                        $messages[] = "Seeder already exists, skipping creation: {$seederName}.php";
-                    }
-
-                    // --- Immediately run the seeder ---
-                    Artisan::call('db:seed', ['--class' => $seederName, '--force' => true]);
-                    $messages[] = "Seeder executed successfully.";
                 }
             }
 
@@ -810,48 +924,5 @@ PHP;
 
         return "            '{$field['name']}' => {$faker},";
     }
-
-
-
-    /**
-     * Displays a list of all tables in the database.
-     */
-    public function showTables()
-    {
-        try {
-            // FIX: Use a direct and reliable raw query to get tables from the current database.
-            $tablesResult = DB::select('SHOW TABLES');
-
-            // The result is an array of objects, so we map it to get a simple array of table names.
-            $tables = array_map('current', $tablesResult);
-
-            return view('migration-guru::tables', compact('tables'));
-        } catch (\Exception $e) {
-            return redirect()->route('migration-guru.index')
-                ->with('error', 'Could not connect to the database to fetch tables: ' . $e->getMessage());
-        }
-    }
-
-    /**
-     * Displays the schema and data for a single database table.
-     */
-    public function viewTable($table)
-    {
-        try {
-            if (!Schema::hasTable($table)) {
-                return redirect()->route('migration-guru.tables')->with('error', "Table '{$table}' not found.");
-            }
-
-            $columns = Schema::getColumnListing($table);
-            $data = DB::table($table)->limit(100)->get();
-
-            return view('migration-guru::view-table', [
-                'tableName' => $table,
-                'columns' => $columns,
-                'data' => $data,
-            ]);
-        } catch (\Exception $e) {
-            return redirect()->route('migration-guru.tables')->with('error', 'An error occurred while fetching table data: ' . $e->getMessage());
-        }
-    }
 }
+
