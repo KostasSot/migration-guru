@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use Nikelioum\MigrationGuru\Http\Controllers\MigrationGuruController;
 
+/* GLobal Vars */
 $prefix = config('migration-guru.route_prefix', 'migration-guru');
 $middleware = config('migration-guru.middleware', ['web']);
 
