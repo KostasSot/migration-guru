@@ -1,6 +1,6 @@
 {
     "name": "nikelioum/migration-guru",
-    "description": "A small Laravel 12 package to manage migrations from a web UI",
+    "description": "A  Laravel 12 package to manage migrations from a web UI",
     "type": "library",
     "license": "MIT",
     "authors": [
