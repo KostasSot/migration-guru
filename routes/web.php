@@ -32,5 +32,17 @@ Route::group([
     //Manually seeding routes
     Route::get('/records/create', [MigrationGuruController::class, 'createRecord'])->name('migration-guru.records.create');
     Route::post('/records/create', [MigrationGuruController::class, 'storeRecord'])->name('migration-guru.records.store');
+
+     // Model Creation Routes
+    Route::get('/models/create', [MigrationGuruController::class, 'createModel'])->name('migration-guru.models.create');
+    Route::post('/models/create', [MigrationGuruController::class, 'storeModel'])->name('migration-guru.models.store');
+
+    // NEW All-in-One Resource Generator Routes
+    Route::get('/resource/create', [MigrationGuruController::class, 'createResource'])->name('migration-guru.resource.create');
+    Route::post('/resource/create', [MigrationGuruController::class, 'storeResource'])->name('migration-guru.resource.store');
+
+    // Database Viewer Routes
+    Route::get('/tables', [MigrationGuruController::class, 'showTables'])->name('migration-guru.tables.index');
+    Route::get('/tables/{table}', [MigrationGuruController::class, 'viewTable'])->name('migration-guru.tables.view');
 });
 
